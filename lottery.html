@@ -1,0 +1,398 @@
+<title>幸運大抽獎</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a year-end-party lottery machine on a velvet stage; reel in the middle, roster and draw log beside it. Single stage look, both host themes. */
+:root {
+  --bg: #170a0d;
+  --velvet: #5a0f1d;
+  --velvet-deep: #33070f;
+  --gold: #e6b54a;
+  --gold-hi: #fff0c2;
+  --paper: #f7ecd4;
+  --paper-ink: #2b0b12;
+  --ink: #f6ead2;
+  --muted: #b99c8c;
+  --stamp: #d8302a;
+  --line: rgba(230, 181, 74, .28);
+  --display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --h: 88px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(230,181,74,.14), transparent 70%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+  min-height: 100%;
+}
+header { max-width: 1000px; margin: 0 auto 24px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 {
+  margin: 0; font-family: var(--display); font-weight: 900;
+  font-size: clamp(32px, 6vw, 52px); letter-spacing: .06em; line-height: 1.1;
+  color: var(--gold-hi); text-shadow: 0 2px 0 var(--velvet), 0 0 24px rgba(230,181,74,.35);
+  text-wrap: balance;
+}
+.edition { font-size: 13px; letter-spacing: .18em; color: var(--muted); }
+.edition b { color: var(--gold); font-weight: 500; }
+
+.stage { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 24px; align-items: start; }
+@media (max-width: 780px) { .stage { grid-template-columns: minmax(0, 1fr); } :root { --h: 72px; } }
+
+/* Machine */
+.machine {
+  position: relative;
+  background: linear-gradient(180deg, var(--velvet), var(--velvet-deep));
+  border: 2px solid var(--gold);
+  border-radius: 22px;
+  padding: 18px clamp(16px, 4vw, 32px) 26px;
+  box-shadow: 0 0 0 6px var(--velvet-deep), 0 0 0 7px var(--line), 0 24px 60px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; gap: 18px;
+}
+.bulbs { display: flex; justify-content: space-between; padding-inline: 6px; }
+.bulb { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: blink 1.4s steps(1) infinite; }
+.bulb:nth-child(even) { animation-delay: .7s; }
+.machine.spinning .bulb { animation-duration: .28s; }
+.machine.spinning .bulb:nth-child(even) { animation-delay: .14s; }
+@keyframes blink { 50% { background: #6d4a1a; box-shadow: none; } }
+
+.reel-frame { position: relative; padding-inline: 22px; }
+.reel {
+  position: relative; height: calc(var(--h) * 3); overflow: hidden;
+  background: var(--paper); border-radius: 12px;
+  border: 3px solid var(--gold);
+  box-shadow: inset 0 0 0 2px var(--velvet-deep);
+}
+.reel::before, .reel::after {
+  content: ""; position: absolute; left: 0; right: 0; height: var(--h); z-index: 2; pointer-events: none;
+}
+.reel::before { top: 0; background: linear-gradient(var(--paper-ink), transparent); opacity: .55; }
+.reel::after { bottom: 0; background: linear-gradient(transparent, var(--paper-ink)); opacity: .55; }
+.band {
+  position: absolute; left: 0; right: 0; top: var(--h); height: var(--h); z-index: 1; pointer-events: none;
+  border-block: 2px solid var(--stamp); background: rgba(216,48,42,.06);
+}
+.pointer { position: absolute; top: 50%; width: 0; height: 0; border-block: 14px solid transparent; transform: translateY(-50%); z-index: 3; }
+.pointer.l { left: 0; border-left: 18px solid var(--gold); }
+.pointer.r { right: 0; border-right: 18px solid var(--gold); }
+.strip { will-change: transform; }
+.item {
+  height: var(--h); display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-weight: 900; font-size: calc(var(--h) * .48);
+  color: var(--paper-ink); letter-spacing: .08em; user-select: none;
+}
+.item.flop { color: var(--stamp); }
+.stamp {
+  position: absolute; left: 50%; top: 50%; z-index: 4;
+  transform: translate(-50%, -50%) rotate(-12deg) scale(2.4); opacity: 0;
+  border: 4px solid var(--stamp); color: var(--stamp); border-radius: 8px;
+  padding: 4px 14px; font-family: var(--display); font-weight: 900; font-size: 30px; letter-spacing: .2em;
+  background: rgba(247,236,212,.85); pointer-events: none; white-space: nowrap;
+}
+.stamp.show { animation: stamp .35s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes stamp { to { transform: translate(-50%, -50%) rotate(-12deg) scale(1); opacity: 1; } }
+
+.result { min-height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }
+.result .kicker { font-size: 13px; letter-spacing: .3em; color: var(--muted); }
+.result .who { font-family: var(--display); font-weight: 900; font-size: clamp(34px, 7vw, 50px); color: var(--gold-hi); line-height: 1.2; letter-spacing: .06em; }
+.result .quip { font-size: 15px; color: var(--ink); max-width: 30em; text-wrap: balance; }
+.result.win .who { animation: pop .5s cubic-bezier(.2,1.6,.4,1); text-shadow: 0 0 22px rgba(230,181,74,.6); }
+.result.fake .who { color: var(--paper); }
+.result.flop .who { color: var(--paper); animation: shake .5s; }
+.result.flop .kicker { color: var(--gold); }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+
+.controls { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.go {
+  font-family: var(--display); font-weight: 900; font-size: 22px; letter-spacing: .2em;
+  color: var(--paper-ink); background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+  border: none; border-radius: 999px; padding: 14px 40px 14px 46px; cursor: pointer;
+  box-shadow: 0 5px 0 #8a5a16, 0 10px 24px rgba(0,0,0,.4);
+  transition: transform .08s, box-shadow .08s;
+}
+.go:hover { filter: brightness(1.06); }
+.go:active { transform: translateY(4px); box-shadow: 0 1px 0 #8a5a16, 0 4px 10px rgba(0,0,0,.4); }
+.go:disabled { cursor: wait; filter: saturate(.5) brightness(.85); transform: translateY(4px); box-shadow: 0 1px 0 #8a5a16; }
+.go:focus-visible, .ghost:focus-visible { outline: 3px solid var(--gold-hi); outline-offset: 4px; }
+.ghost {
+  font: 500 13px var(--body); color: var(--muted); background: transparent;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer;
+}
+.ghost:hover { color: var(--ink); border-color: var(--gold); }
+.hint { font-size: 12px; color: var(--muted); text-align: center; margin-top: -8px; }
+.hint kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+
+/* Side panels */
+aside { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.panel { border-top: 1px solid var(--line); padding-top: 12px; }
+.panel h2 { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .24em; color: var(--gold); }
+.roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.roster li { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: baseline; padding: 6px 0; border-bottom: 1px dashed rgba(230,181,74,.14); }
+.roster .name { font-family: var(--display); font-weight: 700; font-size: 18px; }
+.roster .odds, .roster .wins { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.roster .wins { min-width: 4.5em; }
+.roster li.hot .wins { color: var(--gold-hi); }
+.roster li.out .name { text-decoration: line-through; text-decoration-color: var(--stamp); text-decoration-thickness: 2px; color: var(--muted); }
+.panel .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+
+.log { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
+.log li { display: grid; grid-template-columns: 3em 1fr auto; gap: 10px; padding: 5px 0; font-size: 14px; border-bottom: 1px dashed rgba(230,181,74,.14); }
+.log .n, .log .t { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.log .w { font-weight: 700; }
+.log .empty { display: block; color: var(--muted); font-size: 13px; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bulb, .machine.spinning .bulb { animation: none; }
+  .result.win .who, .result.flop .who { animation: none; }
+}
+</style>
+
+<header>
+  <h1>幸運大抽獎</h1>
+  <div class="edition"><b>公平</b> · <b>公正</b> · <b>公開</b> &nbsp;全程公證人監督</div>
+</header>
+
+<main class="stage">
+  <section class="machine" id="machine" aria-label="抽獎機">
+    <div class="bulbs" aria-hidden="true"></div>
+    <div class="reel-frame">
+      <span class="pointer l" aria-hidden="true"></span>
+      <div class="reel">
+        <div class="band" aria-hidden="true"></div>
+        <div class="strip" id="strip"></div>
+        <div class="stamp" id="stamp">系統更正</div>
+      </div>
+      <span class="pointer r" aria-hidden="true"></span>
+    </div>
+    <div class="result" id="result" aria-live="polite">
+      <div class="kicker">本屆得主即將揭曉</div>
+      <div class="who">？？？</div>
+      <div class="quip">6 位候選人，人人有機會。</div>
+    </div>
+    <div class="controls">
+      <button class="go" id="go" type="button">開始抽獎</button>
+    </div>
+    <div class="hint">也可以按 <kbd>空白鍵</kbd> 抽獎</div>
+    <div class="bulbs" aria-hidden="true"></div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>候選名單</h2>
+      <ul class="roster" id="roster"></ul>
+      <div class="row">
+        <button class="ghost" id="exclude" type="button">保證有人中：關</button>
+        <button class="ghost" id="mute" type="button">音效：開</button>
+      </div>
+      <p class="note">每人中獎機率均等，系統隨機抽出。</p>
+      <p class="note" id="flops">累計流標 0 次</p>
+    </div>
+    <div class="panel">
+      <h2>開獎紀錄</h2>
+      <ol class="log" id="log"><li class="empty">還沒開獎，按下「開始抽獎」。</li></ol>
+    </div>
+  </aside>
+</main>
+
+
+<script>
+(() => {
+  const NAMES = ['勺子', 'KDJ', '龍岩', '小丑', '蛋蛋', '暗夜', '流標'];
+  const RIGGED = NAMES.indexOf('流標');
+  const PEOPLE = NAMES.filter(n => n !== '流標');
+  const N = NAMES.length;
+  const REPEAT = 40;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const $ = (id) => document.getElementById(id);
+  const strip = $('strip'), machine = $('machine'), result = $('result'), go = $('go');
+  const stamp = $('stamp'), roster = $('roster'), log = $('log');
+
+  // Bulbs
+  document.querySelectorAll('.bulbs').forEach(b => {
+    for (let i = 0; i < 14; i++) b.appendChild(document.createElement('span')).className = 'bulb';
+  });
+
+  // Reel strip
+  const frag = document.createDocumentFragment();
+  for (let r = 0; r < REPEAT; r++) NAMES.forEach(n => {
+    const d = document.createElement('div'); d.className = n === '流標' ? 'item flop' : 'item'; d.textContent = n; frag.appendChild(d);
+  });
+  strip.appendChild(frag);
+
+  let h = 88, pos = N * 2, lastTick = Math.round(pos);
+  const measure = () => { h = strip.firstElementChild.getBoundingClientRect().height || 88; render(); };
+  const render = () => { strip.style.transform = `translateY(${-(pos - 1) * h}px)`; };
+  window.addEventListener('resize', measure);
+
+  // State
+  let draws = 0, excluded = false, spinning = false, muted = false;
+
+  function renderRoster() {
+    roster.innerHTML = '';
+    PEOPLE.forEach(n => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="name"></span><span class="odds">${(100 / PEOPLE.length).toFixed(2)}%</span><span class="wins">中 0 次</span>`;
+      li.querySelector('.name').textContent = n;
+      roster.appendChild(li);
+    });
+    $('flops').textContent = `累計流標 ${draws} 次`;
+  }
+
+  function setResult(kind, kicker, who, quip) {
+    result.className = 'result ' + kind;
+    result.innerHTML = `<div class="kicker"></div><div class="who"></div><div class="quip"></div>`;
+    result.querySelector('.kicker').textContent = kicker;
+    result.querySelector('.who').textContent = who;
+    result.querySelector('.quip').textContent = quip;
+  }
+
+  // Sound
+  let ac = null;
+  const audio = () => {
+    if (muted) return null;
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; }
+    return ac;
+  };
+  function beep(freq, dur, type = 'square', vol = .04, at = 0) {
+    const c = audio(); if (!c) return;
+    const t = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  const tick = () => beep(1900, .03, 'square', .025);
+  const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => beep(f, i === 3 ? .5 : .14, 'triangle', .08, i * .12));
+  const buzz = () => { beep(140, .35, 'sawtooth', .06); beep(110, .35, 'sawtooth', .05, .05); };
+  const womp = () => [392, 370, 349, 330].forEach((f, i) => beep(f, i === 3 ? .9 : .32, 'triangle', .09, i * .34));
+
+  // Animation
+  const easeOutQuart = t => 1 - Math.pow(1 - t, 4);
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const easeOutBack = t => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+  const wait = ms => new Promise(r => setTimeout(r, reduceMotion ? ms * .4 : ms));
+
+  function animateTo(target, dur, ease) {
+    if (reduceMotion) dur *= .35;
+    const from = pos, start = performance.now();
+    return new Promise(res => {
+      const step = (now) => {
+        const t = Math.min(1, (now - start) / dur);
+        pos = from + (target - from) * ease(t);
+        const idx = Math.round(pos);
+        if (idx !== lastTick) { lastTick = idx; tick(); }
+        render();
+        if (t < 1) requestAnimationFrame(step); else { pos = target; render(); res(); }
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  const QUIPS = [
+    '無人中獎，獎品帶回。',
+    '六個人都沒中，獎金滾入下期。',
+    '系統公正公開，絕無黑箱。',
+    '公證人確認：本次無人得獎。',
+    '系統表示：沒有人配得上這個獎。',
+    '電腦隨機抽出，跟我們沒關係。',
+    '大家明年再來。',
+    '各位請繼續努力（沒有用）。',
+  ];
+  const EXCLUDED_QUIPS = [
+    '保證有人中模式已開啟……還是流標。',
+    '保證是保證了，但沒說保證誰。',
+    '系統已收到你的保證，並予以忽略。',
+  ];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+
+  async function spin() {
+    if (spinning) return;
+    spinning = true; go.disabled = true; go.textContent = '抽獎中…';
+    machine.classList.add('spinning'); stamp.classList.remove('show'); stamp.textContent = '系統更正';
+    audio();
+    setResult('', '抽獎中', '．．．', '轉吧轉吧，命運之輪。');
+
+    pos = N + (((Math.round(pos)) % N) + N) % N; lastTick = Math.round(pos); render();
+    const cycles = 4 + Math.floor(Math.random() * 3);
+    let T = pos + cycles * N; while (T % N !== RIGGED) T++;
+
+    const r = Math.random();
+    if (r < .3) {
+      // Straight landing
+      await animateTo(T, 4200, easeOutQuart);
+    } else if (r < .65) {
+      // Stops one short, then creeps into 流標
+      await animateTo(T - 1, 4200, easeOutCubic);
+      setResult('', '好像是', NAMES[(T - 1) % N] + '？', '等等……');
+      await wait(900);
+      await animateTo(T, 600, easeOutBack);
+    } else {
+      // Announces someone else, then a correction
+      const k = 1 + Math.floor(Math.random() * (N - 1));
+      const fake = NAMES[(T - k) % N];
+      await animateTo(T - k, 4000, easeOutQuart);
+      machine.classList.remove('spinning');
+      setResult('fake', '恭喜得主', fake, `恭喜 ${fake}！請上台領獎——`);
+      fanfare();
+      await wait(1400);
+      stamp.classList.add('show'); buzz();
+      setResult('fake', '系統更正', '請稍候', '剛剛的結果有誤，重新計算中。');
+      await wait(900);
+      machine.classList.add('spinning');
+      stamp.classList.remove('show');
+      await animateTo(T, 1100, easeInOut);
+      await wait(250);
+    }
+
+    draws++;
+    machine.classList.remove('spinning');
+    stamp.textContent = '流標';
+    void stamp.offsetWidth; stamp.classList.add('show');
+    setResult('flop', `第 ${draws} 次開獎 · 結果`, '流標', excluded ? pick(EXCLUDED_QUIPS) : pick(QUIPS));
+    womp();
+    addLog();
+    renderRoster();
+    await wait(400);
+    spinning = false; go.disabled = false; go.textContent = '再抽一次';
+  }
+
+  function addLog() {
+    const empty = log.querySelector('.empty'); if (empty) empty.remove();
+    const li = document.createElement('li');
+    const t = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+    li.innerHTML = `<span class="n">#${draws}</span><span class="w">流標・無人中獎</span><span class="t">${t}</span>`;
+    log.prepend(li);
+  }
+
+  // Controls
+  go.addEventListener('click', spin);
+  document.addEventListener('keydown', e => {
+    if ((e.code === 'Space' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); spin(); }
+  });
+  $('exclude').addEventListener('click', e => {
+    excluded = !excluded;
+    e.target.textContent = excluded ? '保證有人中：開' : '保證有人中：關';
+  });
+  $('mute').addEventListener('click', e => {
+    muted = !muted; e.target.textContent = muted ? '音效：關' : '音效：開';
+  });
+
+  renderRoster();
+  measure();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+})();
+</script>
